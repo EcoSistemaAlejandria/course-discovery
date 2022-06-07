@@ -15,7 +15,7 @@ from course_discovery.apps.core.tests.factories import UserFactory
 from course_discovery.apps.core.tests.helpers import make_image_file
 from course_discovery.apps.core.tests.mixins import ElasticsearchTestMixin
 from course_discovery.apps.course_metadata.choices import CourseRunStatus
-from course_discovery.apps.course_metadata.models import ProgramType, Seat, SeatType
+from course_discovery.apps.course_metadata.models import CourseType, ProgramType, Seat, SeatType
 from course_discovery.apps.course_metadata.tests.factories import (
     CourseRunFactory, ProgramFactory, ProgramTypeFactory, SeatFactory, SeatTypeFactory
 )
@@ -212,6 +212,42 @@ class AffiliateWindowViewSetTests(ElasticsearchTestMixin, SerializationMixin, AP
         assert response.status_code == 200
         root = ET.fromstring(response.content)
         assert 0 == len(root.findall('product'))
+
+    @ddt.data('edX', 'x_partner')
+    def test_exclude_2u_products_from_awin(self, partner):
+        """
+        Verify the endpoint returns 2u products only for edX
+        """
+        executive_ed_type, _ = CourseType.objects.get_or_create(slug=CourseType.EXECUTIVE_EDUCATION_2U)
+        bootcamp, _ = CourseType.objects.get_or_create(slug=CourseType.BOOTCAMP_2U)
+        now = datetime.datetime.now(pytz.UTC)
+        future = now + datetime.timedelta(days=30)
+        self.partner.name = partner
+        self.partner.save()
+
+        course_run_exec_ed = CourseRunFactory(
+            course__type=executive_ed_type,
+            course__title='ABC Course Exec ed',
+            end=future,
+            enrollment_end=future
+        )
+        SeatFactory(course_run=course_run_exec_ed, type=SeatTypeFactory.verified())
+
+        course_run_bootcamp = CourseRunFactory(
+            course__type=bootcamp,
+            course__title='ABC Course Bootcamp',
+            end=future,
+            enrollment_end=future
+        )
+        SeatFactory(course_run=course_run_bootcamp, type=SeatTypeFactory.verified())
+
+        response = self.client.get(self.affiliate_url)
+        assert response.status_code == 200
+        root = ET.fromstring(response.content)
+        if partner == 'edX':
+            assert 3 == len(root.findall('product'))
+        else:
+            assert 1 == len(root.findall('product'))
 
     def assert_product_xml(self, content, seat):
         """ Helper method to verify product data in xml format. """

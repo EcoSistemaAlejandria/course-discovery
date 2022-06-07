@@ -8,7 +8,7 @@ from course_discovery.apps.api import serializers
 from course_discovery.apps.api.pagination import ProxiedPagination
 from course_discovery.apps.api.renderers import AffiliateWindowXMLRenderer
 from course_discovery.apps.catalogs.models import Catalog
-from course_discovery.apps.course_metadata.models import CourseRun, ProgramType, Seat
+from course_discovery.apps.course_metadata.models import CourseRun, CourseType, ProgramType, Seat
 
 
 class AffiliateWindowViewSet(viewsets.ViewSet):
@@ -35,6 +35,10 @@ class AffiliateWindowViewSet(viewsets.ViewSet):
             raise PermissionDenied
 
         courses = catalog.courses()
+        if request.site.partner.name != 'edX':
+            course_types_2U = [CourseType.EXECUTIVE_EDUCATION_2U, CourseType.BOOTCAMP_2U]
+            courses = courses.exclude(type__slug__in=course_types_2U)
+
         course_runs = CourseRun.objects.filter(course__in=courses).active().marketable()
         seats = Seat.objects.filter(type__in=[Seat.VERIFIED, Seat.PROFESSIONAL]).filter(course_run__in=course_runs)
         seats = seats.select_related(

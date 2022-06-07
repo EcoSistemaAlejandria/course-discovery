@@ -12,7 +12,7 @@ from course_discovery.apps.api import filters, serializers
 from course_discovery.apps.api.pagination import ProxiedPagination
 from course_discovery.apps.api.renderers import CourseRunCSVRenderer
 from course_discovery.apps.catalogs.models import Catalog
-from course_discovery.apps.course_metadata.models import CourseRun
+from course_discovery.apps.course_metadata.models import CourseRun, CourseType
 
 User = get_user_model()
 
@@ -92,8 +92,12 @@ class CatalogViewSet(viewsets.ModelViewSet):
         serializer: serializers.CatalogCourseSerializer
         """
         catalog = self.get_object()
-
         queryset = catalog.courses()
+        # exclude 2u products for partners other than edX
+        if request.site.partner.name != 'edX':
+            course_types_2U = [CourseType.EXECUTIVE_EDUCATION_2U, CourseType.BOOTCAMP_2U]
+            queryset = queryset.exclude(type__slug__in=course_types_2U)
+
         course_runs = CourseRun.objects.all()
         if not catalog.include_archived:
             queryset = queryset.available()

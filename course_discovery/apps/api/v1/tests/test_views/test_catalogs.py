@@ -18,7 +18,7 @@ from course_discovery.apps.catalogs.tests.factories import CatalogFactory
 from course_discovery.apps.core.tests.factories import UserFactory
 from course_discovery.apps.core.tests.mixins import ElasticsearchTestMixin
 from course_discovery.apps.course_metadata.choices import CourseRunStatus
-from course_discovery.apps.course_metadata.models import Course
+from course_discovery.apps.course_metadata.models import Course, CourseType
 from course_discovery.apps.course_metadata.tests.factories import (
     CourseRunFactory, SeatFactory, SeatTypeFactory, SubjectFactory
 )
@@ -367,6 +367,52 @@ class CatalogViewSetTests(ElasticsearchTestMixin, SerializationMixin, OAuth2Mixi
         assert response.status_code == 200
         # The course appearing in response should include archived course run
         assert len(response.data['results'][0]['course_runs']) == 2
+
+    @ddt.data('edX', 'test_partner')
+    def test_exclude_2u_products_from_catalog(self, partner):
+        """
+        Verify the endpoint returns 2u products only for edX
+        """
+        url = reverse('api:v1:catalog-courses', kwargs={'id': self.catalog.id})
+        Course.objects.all().delete()
+        now = datetime.datetime.now(pytz.UTC)
+        future = now + datetime.timedelta(days=30)
+        self.partner.name = partner
+        self.partner.save()
+
+        executive_ed_type, _ = CourseType.objects.get_or_create(slug=CourseType.EXECUTIVE_EDUCATION_2U)
+        bootcamp, _ = CourseType.objects.get_or_create(slug=CourseType.BOOTCAMP_2U)
+
+        course_run_exec_ed = CourseRunFactory.create(
+            course__type=executive_ed_type,
+            course__title='ABC Course Exec ed',
+            end=future,
+            enrollment_end=future
+        )
+        SeatFactory.create(course_run=course_run_exec_ed)
+
+        course_run_bootcamp = CourseRunFactory.create(
+            course__type=bootcamp,
+            course__title='ABC Course Bootcamp',
+            end=future,
+            enrollment_end=future
+        )
+        SeatFactory.create(course_run=course_run_bootcamp)
+
+        course_run = CourseRunFactory.create(
+            course__title='ABC Course',
+            end=future,
+            enrollment_end=future
+        )
+        SeatFactory.create(course_run=course_run)
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+        if partner == 'edX':
+            assert len(response.data['results']) == 3
+        else:
+            assert len(response.data['results']) == 1
+            assert response.data['results'][0]['title'] == 'ABC Course'
 
     def test_contains_for_course_key(self):
         """
