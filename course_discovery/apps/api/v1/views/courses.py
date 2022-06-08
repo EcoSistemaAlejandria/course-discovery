@@ -312,6 +312,7 @@ class CourseViewSet(CompressedCacheResponseMixin, viewsets.ModelViewSet):
         # Sending draft=False means the course data is live and updates should be pushed out immediately
         draft = data.pop('draft', True)
         image_data = data.pop('image', None)
+        org_logo_override_image = data.pop('organization_logo_override', None)
         video_data = data.pop('video', None)
         url_slug = data.pop('url_slug', '')
 
@@ -355,10 +356,14 @@ class CourseViewSet(CompressedCacheResponseMixin, viewsets.ModelViewSet):
         # Save image and convert to the correct format
         if image_data and isinstance(image_data, str) and image_data.startswith('data:image'):
             # base64 encoded image - decode
-            file_format, imgstr = image_data.split(';base64,')  # format ~= data:image/X;base64,/xxxyyyzzz/
-            ext = file_format.split('/')[-1]  # guess file extension
-            image_data = ContentFile(base64.b64decode(imgstr), name=f'tmp.{ext}')
-            course.image.save(image_data.name, image_data)
+            img_name, img_data = self._decode_image_data(image_data)
+            course.image.save(img_name, img_data)
+
+        # Save organization logo override and convert to the correct format
+        if org_logo_override_image and isinstance(org_logo_override_image, str) \
+                and org_logo_override_image.startswith('data:image'):
+            img_name, img_data = self._decode_image_data(org_logo_override_image)
+            course.organization_logo_override.save(img_name, img_data)
 
         if data.get('collaborators'):
             collaborators_uuids = data.get('collaborators')
@@ -412,6 +417,16 @@ class CourseViewSet(CompressedCacheResponseMixin, viewsets.ModelViewSet):
         return_dict = {'url_slug': course.active_url_slug}
         return_dict.update(serializer.data)
         return Response(return_dict)
+
+    def _decode_image_data(self, image_data):
+        """
+        Given a encoded base64 image It will decode encoded image and
+        return image name and decoded image_data
+        """
+        file_format, img_str = image_data.split(';base64,')  # format ~= data:image/X;base64,/xxxyyyzzz/
+        ext = file_format.split('/')[-1]  # guess file extension
+        image_data = ContentFile(base64.b64decode(img_str), name=f'tmp.{ext}')
+        return image_data.name, image_data
 
     def _is_course_run_reviewed(self, course):
         """ Checks if any course run for a course is in reviewed state """
