@@ -30,7 +30,7 @@ from sortedm2m.fields import SortedManyToManyField
 from stdimage.models import StdImageField
 from taggit_autosuggest.managers import TaggableManager
 
-from course_discovery.apps.core.models import Currency, Partner
+from course_discovery.apps.core.models import Country, Currency, Partner, State
 from course_discovery.apps.course_metadata import emails
 from course_discovery.apps.course_metadata.choices import (
     CertificateType, CourseRunPacing, CourseRunStatus, PayeeType, ProgramStatus, ReportingType
@@ -847,6 +847,11 @@ class Course(DraftModelMixin, PkSearchableMixin, CachedMixin, TimeStampedModel):
     authoring_organizations = SortedManyToManyField(Organization, blank=True, related_name='authored_courses')
     sponsoring_organizations = SortedManyToManyField(Organization, blank=True, related_name='sponsored_courses')
     collaborators = SortedManyToManyField(Collaborator, null=True, blank=True, related_name='courses_collaborated')
+    country = models.ForeignKey(Country, on_delete=models.SET_NULL, blank=True, null=True)
+    state = models.ForeignKey(
+        State, on_delete=models.SET_NULL, blank=True, null=True,
+        help_text=_('Only relevant when country is set to "US".'),
+    )
     subjects = SortedManyToManyField(Subject, blank=True)
     prerequisites = models.ManyToManyField(Prerequisite, blank=True)
     level_type = models.ForeignKey(LevelType, models.CASCADE, default=None, null=True, blank=True)
@@ -2195,6 +2200,11 @@ class Program(PkSearchableMixin, TimeStampedModel):
         help_text=_('The user-facing display title for this Program.'), max_length=255)
     subtitle = models.CharField(
         help_text=_('A brief, descriptive subtitle for the Program.'), max_length=255, blank=True)
+    country = models.ForeignKey(Country, on_delete=models.SET_NULL, blank=True, null=True)
+    state = models.ForeignKey(
+        State, on_delete=models.SET_NULL, blank=True, null=True,
+        help_text=_('Only relevant when country is set to "US".'),
+    )
     marketing_hook = models.CharField(
         help_text=_('A brief hook for the marketing website'), max_length=255, blank=True)
     type = models.ForeignKey(ProgramType, models.CASCADE, null=True, blank=True)
@@ -3146,6 +3156,52 @@ class CourseUrlRedirect(AbstractValueModel):
         unique_together = (
             ('partner', 'value')
         )
+
+
+class LocationRestrictionModelMixin(models.Model):
+    ALLOWLIST = 'allowlist'
+    BLOCKLIST = 'blocklist'
+    RESTRICTION_TYPE_CHOICES = (
+        (ALLOWLIST, _('Allowlist')),
+        (BLOCKLIST, _('Blocklist'))
+    )
+
+    countries = SortedManyToManyField(
+        Country, null=True, blank=True,
+        related_name='%(app_label)s_%(class)s_country',
+        related_query_name='%(app_label)s_%(class)ss',
+    )
+    states = SortedManyToManyField(
+        State, null=True, blank=True,
+        related_name='%(app_label)s_%(class)s_state',
+        related_query_name='%(app_label)s_%(class)ss',
+    )
+    restriction_type = models.CharField(
+        max_length=255, choices=RESTRICTION_TYPE_CHOICES, default=ALLOWLIST
+    )
+
+    def get_country_codes(self):
+        return [country.code for country in self.countries.all()]
+
+    def get_state_codes(self):
+        return [state.code for state in self.states.all()]
+
+    class Meta:
+        abstract = True
+
+
+class CourseLocationRestriction(LocationRestrictionModelMixin):
+    course = models.OneToOneField(Course, on_delete=models.CASCADE, null=False)
+
+    def __str__(self):
+        return f'Location restriction for {self.course.title}'
+
+
+class ProgramLocationRestriction(LocationRestrictionModelMixin):
+    program = models.OneToOneField(Program, on_delete=models.CASCADE, null=False)
+
+    def __str__(self):
+        return f'Location restriction for {self.program.name}'
 
 
 class BackpopulateCourseTypeConfig(SingletonModel):

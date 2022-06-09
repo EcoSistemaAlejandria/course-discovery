@@ -6,7 +6,7 @@ from factory.fuzzy import FuzzyChoice, FuzzyDateTime, FuzzyDecimal, FuzzyInteger
 from pytz import UTC
 from taxonomy.models import CourseSkills, Skill
 
-from course_discovery.apps.core.tests.factories import PartnerFactory, UserFactory, add_m2m_data
+from course_discovery.apps.core.tests.factories import CountryFactory, PartnerFactory, StateFactory, UserFactory, add_m2m_data
 from course_discovery.apps.core.tests.utils import FuzzyURL
 from course_discovery.apps.course_metadata.models import *  # pylint: disable=wildcard-import
 from course_discovery.apps.ietf_language_tags.models import LanguageTag
@@ -233,6 +233,8 @@ class CourseFactory(SalesforceRecordFactory):
     key = FuzzyText(prefix='course-id+')
     key_for_reruns = FuzzyText(prefix='OrgX+')
     title = FuzzyText(prefix="Test çօմɾʂҽ ")
+    country = factory.SubFactory(CountryFactory)
+    state = factory.SubFactory(StateFactory)
     short_description = FuzzyText(prefix="Test çօմɾʂҽ short description")
     full_description = FuzzyText(prefix="Test çօմɾʂҽ FULL description")
     level_type = factory.SubFactory(LevelTypeFactory)
@@ -513,6 +515,8 @@ class ProgramFactory(factory.django.DjangoModelFactory):
     marketing_slug = factory.Sequence(lambda n: f'test-slug-{n}')
     card_image_url = FuzzyText(prefix='https://example.com/program/card')
     partner = factory.SubFactory(PartnerFactory)
+    country = factory.SubFactory(CountryFactory)
+    state = factory.SubFactory(StateFactory)
     video = factory.SubFactory(VideoFactory)
     overview = FuzzyText()
     total_hours_of_effort = FuzzyInteger(2)
@@ -768,3 +772,36 @@ class CollaboratorFactory(factory.django.DjangoModelFactory):
     name = FuzzyText()
     image = factory.django.ImageField()
     uuid = factory.LazyFunction(uuid4)
+
+
+class LocationRestrictionModelMixinFactory(factory.django.DjangoModelFactory):
+    restriction_type = factory.fuzzy.FuzzyChoice(
+        LocationRestrictionModelMixin.RESTRICTION_TYPE_CHOICES, getter=lambda c: c[0]
+    )
+
+    @factory.post_generation
+    def countries(self, create, extracted, **kwargs):
+        if create:  # pragma: no cover
+            add_m2m_data(self.countries, extracted)
+
+    @factory.post_generation
+    def states(self, create, extracted, **kwargs):
+        if create:  # pragma: no cover
+            add_m2m_data(self.states, extracted)
+
+    class Meta:
+        model = LocationRestrictionModelMixin
+
+
+class CourseLocationRestrictionFactory(LocationRestrictionModelMixinFactory):
+    course = factory.SubFactory(CourseFactory)
+
+    class Meta:
+        model = CourseLocationRestriction
+
+
+class ProgramLocationRestrictionFactory(LocationRestrictionModelMixinFactory):
+    program = factory.SubFactory(ProgramFactory)
+
+    class Meta:
+        model = ProgramLocationRestriction

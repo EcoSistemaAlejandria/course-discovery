@@ -5,7 +5,9 @@ from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 
 from course_discovery.apps.core.forms import UserThrottleRateForm
-from course_discovery.apps.core.models import Currency, Partner, SalesforceConfiguration, User, UserThrottleRate
+from course_discovery.apps.core.models import (
+    Country, Currency, Partner, SalesforceConfiguration, State, User, UserThrottleRate
+)
 
 
 @admin.register(User)
@@ -34,6 +36,28 @@ class CurrencyAdmin(admin.ModelAdmin):
     list_display = ('code', 'name',)
     ordering = ('code', 'name',)
     search_fields = ('code', 'name',)
+
+
+@admin.register(Country)
+class CountryAdmin(admin.ModelAdmin):
+    list_display = ('code', 'name',)
+    readonly_fields = ('code', 'name',)
+    search_fields = ('country',)
+    ordering = ('country',)
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(State)
+class StateAdmin(admin.ModelAdmin):
+    list_display = ('code', 'name',)
+    readonly_fields = ('code', 'name',)
+    search_fields = ('state',)
+    ordering = ('state',)
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Partner)

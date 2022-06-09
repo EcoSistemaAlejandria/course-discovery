@@ -2,9 +2,13 @@ from uuid import uuid4
 
 import factory
 from django.contrib.sites.models import Site
+from django_countries import Countries
+from django_countries.fields import CountryField
+from localflavor.us.models import USStateField
+from localflavor.us.us_states import CONTIGUOUS_STATES
 
 from course_discovery.apps.api.fields import StdImageSerializerField
-from course_discovery.apps.core.models import Currency, Partner, SalesforceConfiguration, User
+from course_discovery.apps.core.models import Country, Currency, Partner, SalesforceConfiguration, State, User
 from course_discovery.apps.core.tests.utils import FuzzyUrlRoot
 from course_discovery.apps.course_metadata.models import Collaborator
 
@@ -83,6 +87,21 @@ class CurrencyFactory(factory.django.DjangoModelFactory):
 
     class Meta:
         model = Currency
+
+
+class CountryFactory(factory.django.DjangoModelFactory):
+    country = CountryField(default=factory.fuzzy.FuzzyChoice(Countries, getter=lambda c: c[0]))
+
+    class Meta:
+        model = Country
+        django_get_or_create = ('country',)
+
+class StateFactory(factory.django.DjangoModelFactory):
+    state = USStateField(default=factory.fuzzy.FuzzyChoice(CONTIGUOUS_STATES, getter=lambda c: c[0]))
+
+    class Meta:
+        model = State
+        django_get_or_create = ('state',)
 
 
 class SalesforceConfigurationFactory(factory.django.DjangoModelFactory):

@@ -295,10 +295,10 @@ class ProgramAdmin(admin.ModelAdmin):
 
     # ordering the field display on admin page.
     fields = (
-        'uuid', 'title', 'subtitle', 'marketing_hook', 'status', 'type', 'partner', 'banner_image', 'banner_image_url',
-        'card_image', 'marketing_slug', 'overview', 'credit_redemption_overview', 'video', 'total_hours_of_effort',
-        'weeks_to_complete', 'min_hours_effort_per_week', 'max_hours_effort_per_week', 'courses',
-        'order_courses_by_start_date', 'custom_course_runs_display', 'excluded_course_runs', 'authoring_organizations',
+        'uuid', 'title', 'subtitle', 'marketing_hook', 'status', 'type', 'partner', 'country', 'state',
+        'banner_image', 'banner_image_url', 'card_image', 'marketing_slug', 'overview', 'credit_redemption_overview',
+        'video', 'total_hours_of_effort', 'weeks_to_complete', 'min_hours_effort_per_week', 'max_hours_effort_per_week',
+        'courses', 'order_courses_by_start_date', 'custom_course_runs_display', 'excluded_course_runs', 'authoring_organizations',
         'credit_backing_organizations', 'one_click_purchase_enabled', 'hidden', 'corporate_endorsements', 'faq',
         'individual_endorsements', 'job_outlook_items', 'expected_learning_items', 'instructor_ordering',
         'enrollment_count', 'recent_enrollment_count', 'credit_value', 'organization_short_code_override',
@@ -687,9 +687,9 @@ class DegreeAdmin(admin.ModelAdmin):
     )
     # ordering the field display on admin page.
     fields = (
-        'type', 'uuid', 'status', 'hidden', 'partner', 'authoring_organizations', 'marketing_slug', 'card_image_url',
-        'search_card_ranking', 'search_card_cost', 'search_card_courses', 'overall_ranking', 'campus_image', 'title',
-        'subtitle', 'title_background_image', 'banner_border_color', 'apply_url', 'overview', 'rankings',
+        'type', 'uuid', 'status', 'hidden', 'partner', 'country', 'state', 'authoring_organizations', 'marketing_slug',
+        'card_image_url', 'search_card_ranking', 'search_card_cost', 'search_card_courses', 'overall_ranking', 'campus_image',
+        'title', 'subtitle', 'title_background_image', 'banner_border_color', 'apply_url', 'overview', 'rankings',
         'application_requirements', 'prerequisite_coursework', 'lead_capture_image', 'lead_capture_list_name',
         'hubspot_lead_capture_form_id', 'micromasters_long_title', 'micromasters_long_description', 'micromasters_url',
         'micromasters_background_image', 'micromasters_org_name_override', 'faq', 'costs_fine_print',
@@ -740,3 +740,19 @@ class CollaboratorAdmin(admin.ModelAdmin):
 class CourseUrlSlugAdmin(admin.ModelAdmin):
     list_display = ('course', 'url_slug', 'is_active')
     search_fields = ('url_slug', 'course__title', 'course__key',)
+
+
+@admin.register(CourseLocationRestriction)
+class CourseLocationRestrictionAdmin(admin.ModelAdmin):
+    list_display = ('course', 'restriction_type')
+    fields = ('course', 'restriction_type', 'countries', 'states')
+    search_fields = ('course__title',)
+    raw_id_fields = ('course',)
+
+
+@admin.register(ProgramLocationRestriction)
+class ProgramLocationRestrictionAdmin(admin.ModelAdmin):
+    list_display = ('program', 'restriction_type')
+    fields = ('program', 'restriction_type', 'countries', 'states')
+    search_fields = ('program__name',)
+    raw_id_fields = ('program',)

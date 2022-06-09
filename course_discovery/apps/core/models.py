@@ -5,9 +5,11 @@ from django.contrib.sites.models import Site
 from django.db import models
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
+from django_countries.fields import CountryField
 from django_extensions.db.models import TimeStampedModel
 from edx_rest_api_client.client import OAuthAPIClient
 from guardian.mixins import GuardianUserMixin
+from localflavor.us.models import USStateField
 from simple_history.models import HistoricalRecords
 
 
@@ -45,6 +47,41 @@ class Currency(models.Model):
 
     class Meta:
         verbose_name_plural = 'Currencies'
+
+
+class Country(models.Model):
+    """ Table of countries as defined by ISO-3166. """
+    country = CountryField(unique=True, null=False)
+
+    @property
+    def code(self):
+        return self.country.code
+
+    @property
+    def name(self):
+        return self.country.name
+
+    def __str__(self):
+        return f'{self.code} - {self.name}'
+
+    class Meta:
+        verbose_name_plural = 'Countries'
+
+
+class State(models.Model):
+    """ Table of states as defined by ISO-3166. """
+    state = USStateField(unique=True, null=False)
+
+    @property
+    def code(self):
+        return self.state
+
+    @property
+    def name(self):
+        return self.get_state_display()
+
+    def __str__(self):
+        return f'{self.code} - {self.name}'
 
 
 class Partner(TimeStampedModel):
