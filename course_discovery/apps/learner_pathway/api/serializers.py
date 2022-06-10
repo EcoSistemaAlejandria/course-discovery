@@ -22,19 +22,23 @@ class LearnerPathwayCourseMinimalSerializer(serializers.ModelSerializer):
         return obj.course.course_runs.filter(status=CourseRunStatus.Published).values('key')
 
 
-class LearnerPathwayCourseSerializer(serializers.ModelSerializer):
+class LearnerPathwayCourseSerializer(LearnerPathwayCourseMinimalSerializer):
     """
     Serializer for LearnerPathwayCourse model.
     """
-    key = serializers.CharField(source="course.key")
     title = serializers.CharField(source="course.title")
     short_description = serializers.CharField(source="course.short_description")
     content_type = serializers.CharField(source="NODE_TYPE")
     card_image_url = serializers.CharField(source="course.image_url")
 
-    class Meta:
+    class Meta(LearnerPathwayCourseMinimalSerializer.Meta):
         model = models.LearnerPathwayCourse
-        fields = ('key', 'title', 'short_description', 'card_image_url', 'content_type')
+        fields = LearnerPathwayCourseMinimalSerializer.Meta.fields + (
+            'title',
+            'short_description',
+            'card_image_url',
+            'content_type'
+        )
 
 
 class LearnerPathwayProgramMinimalSerializer(serializers.ModelSerializer):
@@ -57,6 +61,7 @@ class LearnerPathwayProgramSerializer(LearnerPathwayProgramMinimalSerializer):
     short_description = serializers.CharField(source="program.subtitle")
     content_type = serializers.CharField(source="NODE_TYPE")
     card_image_url = serializers.SerializerMethodField()
+    courses = serializers.SerializerMethodField()
 
     class Meta(LearnerPathwayProgramMinimalSerializer.Meta):
         model = models.LearnerPathwayProgram
@@ -65,7 +70,8 @@ class LearnerPathwayProgramSerializer(LearnerPathwayProgramMinimalSerializer):
             'title',
             'short_description',
             'card_image_url',
-            'content_type'
+            'content_type',
+            'courses'
         )
 
     def get_card_image_url(self, step):
@@ -73,6 +79,18 @@ class LearnerPathwayProgramSerializer(LearnerPathwayProgramMinimalSerializer):
         if program.card_image:
             return program.card_image.url
         return program.card_image_url
+
+    def get_courses(self, step):
+        program = step.program
+        if program.courses:
+            courses = []
+            for course in program.courses.all():
+                course_runs = []
+                if course.course_runs:
+                    course_runs = course.course_runs.filter(status=CourseRunStatus.Published).values('key')
+                courses.append({"key": course.key, "course_runs": course_runs})
+            return courses
+        return []
 
 
 class LearnerPathwayBlockSerializer(serializers.ModelSerializer):

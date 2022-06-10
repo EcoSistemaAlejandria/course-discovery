@@ -37,6 +37,7 @@ class TestLearnerPathwaySerializer(TestCase):
                         'short_description': learner_pathway_course.course.short_description,
                         'card_image_url': learner_pathway_course.course.image_url,
                         'content_type': 'course',
+                        'course_runs': [],
                     } for learner_pathway_course in step.learnerpathwaycourse_set.all()
                 ],
                 'programs': [
@@ -45,7 +46,8 @@ class TestLearnerPathwaySerializer(TestCase):
                         'title': learner_pathway_program.program.title,
                         'short_description': learner_pathway_program.program.subtitle,
                         'card_image_url': learner_pathway_program.program.card_image_url,
-                        'content_type': 'program'
+                        'content_type': 'program',
+                        'courses': [],
                     } for learner_pathway_program in step.learnerpathwayprogram_set.all()
                 ]
             } for step in learner_pathway.steps.all()],
